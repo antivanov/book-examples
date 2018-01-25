@@ -73,6 +73,8 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 val runAll = inputKey[Unit]("Runs all subprojects")
 
 
+javaOptions += "-Xmx2G -XX:MaxPermSize=512M"
+
 runAll := {
   (run in Compile in `web-app`).partialInput(" 3000").evaluated
   (run in Compile in `so-app`).partialInput(" 5000").evaluated
