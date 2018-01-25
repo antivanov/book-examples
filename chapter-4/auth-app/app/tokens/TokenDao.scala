@@ -12,11 +12,11 @@ import scala.concurrent.Future
 
 @Singleton
 class TokenDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, contexts: Contexts) extends HasDatabaseConfigProvider[JdbcProfile] {
-  implicit val executionContext = contexts.cpuLookup
+  implicit val executionContext = contexts.dbLookup
 
   import profile.api._
 
-  implicit val getTokenResult = GetResult(r => Token(TokenStr(r.nextString), r.nextLong(), r.nextString))
+  implicit val getTokenResult = GetResult(r => Token(r.nextString, r.nextLong(), r.nextString))
 
 
   def getToken(token:String): Future[Option[Token]] = {
@@ -28,7 +28,7 @@ class TokenDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
   }
 
   def createToken(token:Token): Future[Int] = {
-    db.run(sqlu"insert into tokens (key, token, validTill) values (${token.key}, ${token.token.tokenStr}, ${token.validTill})")
+    db.run(sqlu"insert into tokens (key, token, validTill) values (${token.key}, ${token.tokenStr}, ${token.validTill})")
   }
 
   def deleteToken(token: String)={

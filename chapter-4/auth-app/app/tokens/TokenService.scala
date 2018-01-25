@@ -7,6 +7,7 @@ import com.microservices.auth.{Token, TokenStr}
 import utils.Contexts
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Success, Try}
 
 
 @Singleton
@@ -21,23 +22,21 @@ class TokenService @Inject()(context: Contexts, tokensDao: TokenDao) {
     tokensDao.getTokenFromkey(key).flatMap {
       case Some(token) =>
         if(token.validTill <= System.currentTimeMillis()){
-          dropToken(token.token)
-          val newToken: Token = generateToken(key)
-          tokensDao.createToken(newToken).map(_ => newToken)
+          dropToken(token.tokenStr)
+          insertNewToken(key)
         } else{
           Future(token)
         }
       case None =>
-        val newToken = generateToken(key)
-        tokensDao.createToken(newToken).map(_ => newToken)
+        insertNewToken(key)
     }
   }
 
   /**
     * verifies if its a valid token. Returns a future completed with token if so. Else the returned future completes with an exception
     */
-  def authenticateToken(token: TokenStr, refresh:Boolean)(implicit exec:ExecutionContext): Future[Token] = {
-    tokensDao.getToken(token.tokenStr).map{
+  def authenticateToken(token: TokenStr, refresh:Boolean)(implicit exec:ExecutionContext): Future[Try[Token]] = {
+    tokensDao.getToken(token.tokenStr).map {
       case Some(t) =>
         if (t.validTill < System.currentTimeMillis())
           throw new IllegalArgumentException("Token expired.")
@@ -45,22 +44,26 @@ class TokenService @Inject()(context: Contexts, tokensDao: TokenDao) {
           if(refresh) {
             val max = maxTTL
             tokensDao.updateTTL(token.tokenStr, max)
-            Token(t.token, max, t.key)
-          }else t
+            Success(Token(t.tokenStr, max, t.key))
+          } else Success(t)
         }
       case None => throw new IllegalArgumentException("Not a valid Token.")
     }
   }
 
 
-  def dropToken(key:TokenStr)={
-    tokensDao.deleteToken(key.tokenStr)
+  def dropToken(tokenStr: String)={
+    tokensDao.deleteToken(tokenStr)
   }
 
+  private def insertNewToken(key: String): Future[Token] = {
+    val newToken = generateToken(key)
+    tokensDao.createToken(newToken).map(_ => newToken)
+  }
 
   private def generateToken(key: String) = Token(generateTokenStr, maxTTL, key)
 
-  private def generateTokenStr: TokenStr = TokenStr(UUID.randomUUID().toString)
+  private def generateTokenStr: String = UUID.randomUUID().toString
   private def maxTTL = System.currentTimeMillis() + context.tokenTTL
 
 }

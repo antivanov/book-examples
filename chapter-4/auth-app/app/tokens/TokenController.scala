@@ -3,11 +3,12 @@ package tokens
 import javax.inject.{Inject, Singleton}
 
 import com.microservices.auth.{ResponseObj, Token, TokenStr}
-import play.api.libs.json.Json
-import play.api.mvc.{AbstractController, ControllerComponents}
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc.{AbstractController, ControllerComponents, Result}
 import utils.Contexts
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class TokenController @Inject()(contexts: Contexts, tokenService: TokenService, cc: ControllerComponents) extends AbstractController(cc) {
@@ -23,7 +24,7 @@ class TokenController @Inject()(contexts: Contexts, tokenService: TokenService, 
   curl -X GET http://localhost:5001/v1/tokens/refresh/677678f7-5dc9-4236-a254-c067b0662e8c
    */
   def refreshToken(token: String) = Action.async {
-    tokenService.authenticateToken(TokenStr(token), true).map(x => Ok(Json.toJson(x)))
+    authenticateAndRefresh(token)
   }
 
   /**
@@ -38,10 +39,13 @@ class TokenController @Inject()(contexts: Contexts, tokenService: TokenService, 
   curl -X GET http://localhost:5001/v1/tokens/authenticate/677678f7-5dc9-4236-a254-c067b0662e8c
    */
   def authenticate(token: String) = Action.async {
-    tokenService.authenticateToken(TokenStr(token), true)
-      .map((x: Token) => Ok(Json.toJson(x)))
-      .recoverWith {
-        case e: Exception => Future.successful(BadRequest(Json.toJson(e.getMessage)))
-      }
+    authenticateAndRefresh(token)
   }
+
+  private def authenticateAndRefresh(token: String): Future[Result] =
+    tokenService.authenticateToken(TokenStr(token), true)
+      .map({
+        case Success(refreshedToken) => Ok(Json.toJson(refreshedToken))
+        case Failure(e) => BadRequest(Json.toJson(e.getMessage))
+      })
 }

@@ -10,6 +10,7 @@ import tokens.TokenService
 import utils.Contexts
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
  /**
   * The usernames along with hash of the passwords are stored in h2 database
@@ -80,12 +81,13 @@ class UserController @Inject()(userService: UserService, contexts: Contexts, tok
     */
   def logout(token: String) = Action.async { implicit request =>
     val future = tokenService.authenticateToken(TokenStr(token), refresh = false)
-    future.map(x => {
-      tokenService.dropToken(x.token)
-      Ok("loggedout")
-    }).recoverWith {
-      case e: Exception => Future.successful(BadRequest(e.getMessage))
-    }
+    future.map({
+      case Success(x) =>
+        tokenService.dropToken(x.token)
+        Ok("loggedout")
+      case Failure(e) =>
+        BadRequest(e.getMessage)
+    })
   }
 
 

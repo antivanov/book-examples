@@ -13,7 +13,7 @@ object User {
 
 case class TokenStr(tokenStr: String)
 
-case class Token(token: TokenStr, validTill: Long, key: String)
+case class Token(tokenStr: String, validTill: Long, key: String)
 
 object TokenStr {
   implicit val tokenSTRJS = Json.format[TokenStr]
@@ -34,7 +34,7 @@ object SimpleMessage {
   * a success (with the body) or a failure (with a message).
   *
   * A sample success call: {"isSuccess":true,"message":{"tokenStr":"677678f7-5dc9-4236-a254-c067b0662e8c"}}
-  * A sample failure call: {"isSuccess":true,"message":"username/password mismatch"}
+  * A sample failure call: {"isSuccess":false,"message":"username/password mismatch"}
   *
   * The reason we wrap it with `ResponseObj` is that when the json is responded back to the user, the caller can take decision
   * based on the `isSuccess` flag.
@@ -58,7 +58,7 @@ object SuccessRes {
   implicit def writes[T: Writes]: Writes[SuccessRes[T]] = (
     (JsPath \ "isSuccess").write[Boolean] and
       (JsPath \ "message").write[T]
-    ) (x => (true, x.message))
+    ) (x => (x.isSuccess, x.message))
 }
 
 object FailureRes {
@@ -74,14 +74,14 @@ object FailureRes {
   implicit def writes: Writes[FailureRes] = (
     (JsPath \ "isSuccess").write[Boolean] and
       (JsPath \ "message").write[String]
-    ) (x => (false, x.message))
+    ) (x => (x.isSuccess, x.message))
 }
 
 object ResponseObj {
   def asSuccess[T: Writes](message: T) = Json.toJson(SuccessRes(message))
   def asFailure(message: String) = Json.toJson(FailureRes(message))
 
-  implicit def reads[T:Reads] = new Reads[ResponseObj] {
+  implicit def reads[T: Reads] = new Reads[ResponseObj] {
     override def reads(json: JsValue) =
       if(json.validate(SuccessRes.reads[T]).isSuccess)
         json.validate(SuccessRes.reads[T])

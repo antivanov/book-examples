@@ -6,14 +6,15 @@ import com.google.inject.Inject
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.JdbcProfile
 import slick.jdbc.GetResult
+import utils.Contexts
 
 import scala.concurrent.Future
 
 case class UserAuth(email:String, passwdHash:String, creationTime:Long)
 
 @Singleton
-class UserDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
-
+class UserDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, contexts: Contexts) extends HasDatabaseConfigProvider[JdbcProfile] {
+  implicit val executionContext = contexts.dbLookup
 
   import profile.api._
 
