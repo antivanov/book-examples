@@ -2,8 +2,7 @@ package tokens
 
 import javax.inject.{Inject, Singleton}
 
-import com.microservices.auth.{ResponseObj, Token, TokenStr}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, ControllerComponents, Result}
 import utils.Contexts
 
@@ -43,7 +42,7 @@ class TokenController @Inject()(contexts: Contexts, tokenService: TokenService, 
   }
 
   private def authenticateAndRefresh(token: String): Future[Result] =
-    tokenService.authenticateToken(TokenStr(token), true)
+    tokenService.authenticateToken(token, true)
       .map({
         case Success(refreshedToken) => Ok(Json.toJson(refreshedToken))
         case Failure(e) => BadRequest(Json.toJson(e.getMessage))

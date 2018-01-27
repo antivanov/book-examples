@@ -39,11 +39,11 @@ class LoginController @Inject()(cc: ControllerComponents, config: AllProperties,
           if(response.status != 200){
             Unauthorized(ResponseObj.asFailure("authentication failure: " + response.body))
           } else {
-            response.json.validate[TokenStr] match {
-              case s: JsSuccess[TokenStr] =>
+            response.json.validate[String] match {
+              case s: JsSuccess[String] =>
                 val token = s.get
                 Ok(ResponseObj.asSuccess(token))
-                  .withSession("token" -> token.tokenStr)
+                  .withSession("token" -> token)
               case e: JsError => Unauthorized(ResponseObj.asFailure("authentication failure"))
             }
           }
@@ -61,11 +61,11 @@ class LoginController @Inject()(cc: ControllerComponents, config: AllProperties,
           if(response.status != 200){
             Unauthorized(ResponseObj.asFailure("could not register user: " + response.body))
           } else {
-            response.json.validate[TokenStr] match {
-              case s: JsSuccess[TokenStr] =>
+            response.json.validate[String] match {
+              case s: JsSuccess[String] =>
                 val token = s.get
                 Ok(ResponseObj.asSuccess(token))
-                  .withSession("token" -> token.tokenStr)
+                  .withSession("token" -> token)
               case e: JsError => Unauthorized(ResponseObj.asFailure("could not register user"))
             }
           }

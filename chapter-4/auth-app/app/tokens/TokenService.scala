@@ -3,7 +3,7 @@ package tokens
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
-import com.microservices.auth.{Token, TokenStr}
+import com.microservices.auth.Token
 import utils.Contexts
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -11,7 +11,10 @@ import scala.util.{Success, Try}
 
 
 @Singleton
-class TokenService @Inject()(context: Contexts, tokensDao: TokenDao) {
+class TokenService @Inject()(contexts: Contexts, tokensDao: TokenDao) {
+
+  implicit val executionContext = contexts.dbLookup
+
   /**
     * Creates a token based on the key provided. If there was already a token generated for the key and is valid, then the same token is returned
     * Else a new token is generated and returned
@@ -35,15 +38,15 @@ class TokenService @Inject()(context: Contexts, tokensDao: TokenDao) {
   /**
     * verifies if its a valid token. Returns a future completed with token if so. Else the returned future completes with an exception
     */
-  def authenticateToken(token: TokenStr, refresh:Boolean)(implicit exec:ExecutionContext): Future[Try[Token]] = {
-    tokensDao.getToken(token.tokenStr).map {
+  def authenticateToken(token: String, refresh:Boolean)(implicit exec:ExecutionContext): Future[Try[Token]] = {
+    tokensDao.getToken(token).map {
       case Some(t) =>
         if (t.validTill < System.currentTimeMillis())
           throw new IllegalArgumentException("Token expired.")
         else {
           if(refresh) {
             val max = maxTTL
-            tokensDao.updateTTL(token.tokenStr, max)
+            tokensDao.updateTTL(token, max)
             Success(Token(t.tokenStr, max, t.key))
           } else Success(t)
         }
@@ -64,6 +67,6 @@ class TokenService @Inject()(context: Contexts, tokensDao: TokenDao) {
   private def generateToken(key: String) = Token(generateTokenStr, maxTTL, key)
 
   private def generateTokenStr: String = UUID.randomUUID().toString
-  private def maxTTL = System.currentTimeMillis() + context.tokenTTL
+  private def maxTTL = System.currentTimeMillis() + contexts.tokenTTL
 
 }

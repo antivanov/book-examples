@@ -46,7 +46,7 @@ class UserController @Inject()(userService: UserService, contexts: Contexts, tok
           else {
             userService.addUser(user)
               .flatMap(_ => tokenService.createToken(user.email))
-              .map(x => Ok(Json.toJson(x.token)))
+              .map(x => Ok(Json.toJson(x.tokenStr)))
           }
         })
     )
@@ -70,7 +70,7 @@ class UserController @Inject()(userService: UserService, contexts: Contexts, tok
       user =>
         userService.validateUser(user.email, user.password).flatMap { validated =>
           if (validated)
-            tokenService.createToken(user.email).map(x => Ok(Json.toJson(x.token)))
+            tokenService.createToken(user.email).map(x => Ok(Json.toJson(x.tokenStr)))
           else Future.successful(BadRequest("username/password mismatch"))
         }
     )
@@ -80,10 +80,10 @@ class UserController @Inject()(userService: UserService, contexts: Contexts, tok
     * logsout the user be deleting the token associated with the user
     */
   def logout(token: String) = Action.async { implicit request =>
-    val future = tokenService.authenticateToken(TokenStr(token), refresh = false)
+    val future = tokenService.authenticateToken(token, refresh = false)
     future.map({
       case Success(x) =>
-        tokenService.dropToken(x.token)
+        tokenService.dropToken(x.tokenStr)
         Ok("loggedout")
       case Failure(e) =>
         BadRequest(e.getMessage)

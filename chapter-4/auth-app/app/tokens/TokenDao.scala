@@ -2,7 +2,7 @@ package tokens
 
 import javax.inject.{Inject, Singleton}
 
-import com.microservices.auth.{Token, TokenStr}
+import com.microservices.auth.Token
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.JdbcProfile
 import slick.jdbc.GetResult
