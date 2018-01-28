@@ -23,7 +23,6 @@ export default class RegisterPage extends React.Component {
   }
 
   componentDidMount(){
-    let self = this;
     return fetch(this.hostname+'/api/status',{
       credentials:"same-origin"
     })
@@ -33,15 +32,15 @@ export default class RegisterPage extends React.Component {
       } else {
         throw new Error(response.status)
       }
-    }).then(function(body) {
-      self.setState({
+    }).then(body =>
+      this.setState({
         loggedIn: true
       })
-    }).catch(function(err){
-      self.setState({
-        loggedIn: false 
+    ).catch(err =>
+      this.setState({
+        loggedIn: false
       })
-    })
+    )
   }
 
   render() {

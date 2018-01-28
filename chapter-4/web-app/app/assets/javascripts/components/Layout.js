@@ -21,15 +21,14 @@ export default class Layout extends React.Component {
   }
 
   logoutRequest(){
-    let self = this
     return fetch(this.hostname+"/api/logout",{
       method:'GET',
       credentials:'same-origin'
     })
     .then(function(response) {
       return response.json()
-    }).then(function(){
-      window.location.href= self.hostname;
+    }).then(() => {
+      window.location.href = this.hostname;
     })
   }
 
@@ -83,39 +82,5 @@ export default class Layout extends React.Component {
         </Sidebar.Pushable>
       </div>
     )
-  }
-
-  render2() {
-    return (
-      <div className="app-container">
-        <header style={headerStyle}>
-          <Grid columns='equal'>
-            <Grid.Row>
-              <Grid.Column>
-                  <Link to="/">
-                  <Header as='h2'>
-                    <Image shape='circular' src='http://semantic-ui.com/images/avatar2/large/patrick.png' />
-                    {' '} Seeker
-                  </Header>
-                  </Link>
-              </Grid.Column>
-              <Grid.Column>
-              </Grid.Column>
-              <Grid.Column>
-              </Grid.Column>
-              <Grid.Column>
-                  <SidebarLeftSlideAlong />
-              </Grid.Column>
-            </Grid.Row>
-          </Grid>          
-        </header>
-        <div className="app-content">{this.props.children}</div>
-        <footer>
-          <p>
-            This is a demo app to showcase  example from <strong>scala microservices</strong> book.
-          </p>
-          </footer>
-      </div>
-    );
   }
 }
