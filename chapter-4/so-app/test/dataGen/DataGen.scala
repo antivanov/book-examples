@@ -24,9 +24,9 @@ object DataGen extends App {
 
   for {
     soAccount <- 1 until soMax
-    name = random(names)
-    loc = random(location)
-    about = random(aboutMe)
+    name = atRandomIndex(names)
+    loc = atRandomIndex(location)
+    about = atRandomIndex(aboutMe)
   } {
     write(s"insert into so_user_info (name, so_account_id, about_me, so_link, location) values ('$name',$soAccount,'$about','#','$loc');")
   }
@@ -56,7 +56,7 @@ object DataGen extends App {
   }
 
 
-  def random[T](ls: List[T]) = ls(Random.nextInt(ls.size))
+  def atRandomIndex[T](list: List[T]) = list(Random.nextInt(list.size))
   
 
   def write(str:String): Unit ={

@@ -12,7 +12,7 @@ import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
 @Singleton
-class SOSearchController @Inject()(service: SearchService, context: Contexts, cc: ControllerComponents) extends AbstractController(cc) {
+class SearchController @Inject()(service: SearchService, context: Contexts, cc: ControllerComponents) extends AbstractController(cc) {
 
   import context.cpuLookup
 

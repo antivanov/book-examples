@@ -30,25 +30,32 @@ class SearchDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
       """select a.id,a.name, a.so_account_id, a.about_me, a.so_link, a.location, c.id,c.name,b.points from so_user_info a
             join so_reputation b on b.user=a.id
             join so_tag c on b.tag=c.id
-            where 1=1 """
+            """
 
     val allFuture = (location, tag) match {
-      case (Some(loc), Some(t)) =>
+      case (Some(loc), Some(tag)) =>
         db.run(sql"""#$selectQ
-               AND a.location = LOWER($loc)
-               AND c.name = LOWER ($t)""".as[(StackOverflowUser, StackOverflowTag, Int)])
+               where LOWER(a.location) = LOWER($loc)
+               AND LOWER(c.name) = LOWER($tag)""".as[(StackOverflowUser, StackOverflowTag, Int)])
       case (Some(loc), None) =>
          db.run(sql"""#$selectQ
-               AND a.location = LOWER(${loc})""".as[(StackOverflowUser, StackOverflowTag, Int)])
-      case (None, Some(t)) =>
+               where LOWER(a.location) = LOWER(${loc})""".as[(StackOverflowUser, StackOverflowTag, Int)])
+      case (None, Some(tag)) =>
          db.run(sql"""#$selectQ
-               AND UPPER c.name = LOWER (${t})""".as[(StackOverflowUser, StackOverflowTag, Int)])
+               where LOWER(c.name) = LOWER(${tag})""".as[(StackOverflowUser, StackOverflowTag, Int)])
       case (None, None) => db.run(sql"""#$selectQ""".as[(StackOverflowUser, StackOverflowTag, Int)])
     }
 
     allFuture.map(allUsers => {
-      allUsers.groupBy(x => x._1).map(pair => {
-        StackOverflowUserScore(pair._1, pair._2.map(x => (x._2, x._3)).toMap)
+      allUsers.groupBy({
+        case (stackOverflowUser, stackOverflowTag, points) => stackOverflowUser
+      }).map({
+        case (stackOverflowUser, tagsAndPoints) => {
+          val tagPoints = tagsAndPoints.map({
+            case (_, stackOverflowTag, points) => (stackOverflowTag, points)
+          }).toMap
+          StackOverflowUserScore(stackOverflowUser, tagPoints)
+        }
       })
     })
 
