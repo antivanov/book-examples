@@ -2,8 +2,9 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import com.microservices.search.{StackOverflowSearchResult, SearchFilter}
-import play.api.libs.json.Json
+import com.microservices.auth.ResponseObj
+import com.microservices.search.{SearchFilter, StackOverflowSearchResult}
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc._
 import service.SearchService
 import users.Contexts
@@ -17,30 +18,17 @@ class SearchController @Inject()(service: SearchService, context: Contexts, cc: 
   import context.cpuLookup
 
   def searchPost = Action.async(parse.json) { implicit request =>
-    val body = request.body
-    val loc = (body \ "location").validate[String]
-    val tag = (body \ "tag").validate[String]
-    if (loc.isError || tag.isError) {
-      Future.successful(BadRequest(s"Not a valid input: $body"))
-    } else {
-      val filter = SearchFilter(Option(loc.get), Option(tag.get))
-      search(filter).map(x => Ok(Json.toJson(x)))
+    request.body.validate[SearchFilter] match {
+      case filter: JsSuccess[SearchFilter] =>
+        search(SearchFilter(filter.get.location, filter.get.tag))
+          .map(results => Ok(Json.toJson(results)))
+      case _: JsError => Future.successful(BadRequest(s"Not a valid input: $request.body"))
     }
   }
 
-  //  def searchPost = Action.async(parse.json) { implicit request =>
-  //    val body = request.body
-  //    val ans = body.validate[SearchFilter] match {
-  //      case s: JsSuccess[SearchFilter] =>
-  //        val filter: SearchFilter = s.get
-  //        search(SearchFilter(filter.city, filter.tags)).map(x => Ok(ResponseObj.asSuccess(x)))
-  //      case s: JsError => Future.successful(BadRequest(s"Not a valid input: $body"))
-  //    }
-  //    ans
-  //  }
-
   def searchGet(location: String, tag: String) = Action.async { implicit request =>
-    search(SearchFilter(Option(location), Option(tag))).map(x => Ok(Json.toJson(x)))
+    search(SearchFilter(Option(location), Option(tag)))
+      .map(results => Ok(Json.toJson(results)))
   }
 
   private def search(filter: SearchFilter): Future[Seq[StackOverflowSearchResult]] = {
