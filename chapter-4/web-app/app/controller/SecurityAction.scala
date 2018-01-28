@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class SecurityAction @Inject()(parser: BodyParsers.Default, config: AllProperties, ws: WSClient)
                               (implicit ec: ExecutionContext) extends ActionBuilderImpl(parser) {
-  override def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]) = {
+  override def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]) = {
     Logger.info("Calling action")
     request.session.get("token") match {
       case Some(token) =>
@@ -32,7 +32,6 @@ class SecurityAction @Inject()(parser: BodyParsers.Default, config: AllPropertie
       case None =>
         Logger.info("Not logged in. Please login")
         Future.successful(Results.BadRequest(ResponseObj.asFailure(s"Not logged in. Please login")))
-//        block(request)
     }
   }
 }

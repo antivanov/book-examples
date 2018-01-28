@@ -23,12 +23,12 @@ object DataGen extends App {
 
 
   for {
-    soA <- 1 until soMax
+    soAccount <- 1 until soMax
     name = random(names)
     loc = random(location)
     about = random(aboutMe)
   } {
-    write(s"insert into so_user_info (name, so_account_id, about_me, so_link, location) values ('$name',$soA,'$about','#','$loc');")
+    write(s"insert into so_user_info (name, so_account_id, about_me, so_link, location) values ('$name',$soAccount,'$about','#','$loc');")
   }
 
   write("")

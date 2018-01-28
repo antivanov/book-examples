@@ -39,12 +39,14 @@ object QueryParser {
 
     private def city = ".+".r ^^ (name => name)
 
-    private def expr = (((opt(tag) <~ opt(developer)) <~ opt(in)) ~ opt(city)) ^^ (x =>
-      SearchFilter(x._2, x._1.filter(x => !x.toLowerCase().startsWith("developer"))))
+    private def searchQueryParser = (((opt(tag) <~ opt(developer)) <~ opt(in)) ~ opt(city)) ^^ {
+      case tag ~ location =>
+          SearchFilter(location, tag.filter(x => !x.toLowerCase().startsWith("developer")))
+    }
 
-    def apply(st: String): Either[String, SearchFilter] = parseAll(expr, st) match {
-      case Success(ob, _) => Right(ob)
-      case NoSuccess(msg, _) => Left(msg)
+    def apply(searchQuery: String): Either[String, SearchFilter] = parseAll(searchQueryParser, searchQuery) match {
+      case Success(searchFilter, _) => Right(searchFilter)
+      case NoSuccess(error, _) => Left(error)
     }
   }
 

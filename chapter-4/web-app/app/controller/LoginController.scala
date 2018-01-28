@@ -14,9 +14,9 @@ import utils.AllProperties
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class LoginController @Inject()(cc: ControllerComponents, config: AllProperties, ws: WSClient, security: SecurityAction)(implicit val ec: ExecutionContext) extends AbstractController(cc) {
+class LoginController @Inject()(cc: ControllerComponents, config: AllProperties, ws: WSClient, securityAction: SecurityAction)(implicit val ec: ExecutionContext) extends AbstractController(cc) {
 
-  def status = security { request =>
+  def status = securityAction { _ =>
     Ok(ResponseObj.asSuccess("success"))
   }
 

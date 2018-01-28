@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import com.microservices.search.{SOSearchResult, SearchFilter}
+import com.microservices.search.{StackOverflowSearchResult, SearchFilter}
 import play.api.libs.json.Json
 import play.api.mvc._
 import service.SearchService
@@ -43,7 +43,7 @@ class SOSearchController @Inject()(service: SearchService, context: Contexts, cc
     search(SearchFilter(Option(location), Option(tag))).map(x => Ok(Json.toJson(x)))
   }
 
-  private def search(filter: SearchFilter): Future[Seq[SOSearchResult]] = {
+  private def search(filter: SearchFilter): Future[Seq[StackOverflowSearchResult]] = {
     service.searchFlatten(filter)
   }
 

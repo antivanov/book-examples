@@ -35,15 +35,15 @@ export default class SearchResults extends React.Component {
   soTag:
   {id: 1, name: "scala"}
   soUser:
-  {id: 2, name: "Muhammad", soAccountId: 2, aboutMe: "Toy apps or cute things like qsort in haskell really give the wrong idea.", soLink: "#",... }
+  {id: 2, name: "Muhammad", accountId: 2, aboutMe: "Toy apps or cute things like qsort in haskell really give the wrong idea.", link: "#",... }
   */
   renderRows(results){
     return results.map(row =>
       <List.Item>
         <Image avatar src='https://react.semantic-ui.com//assets/images/avatar/small/rachel.png' />
         <List.Content>
-          <List.Header as='h4'>{row.soUser.name}</List.Header>
-          <List.Description>Lives in <a><b>{row.soUser.location}</b></a></List.Description>
+          <List.Header as='h4'>{row.user.name}</List.Header>
+          <List.Description>Lives in <a><b>{row.user.location}</b></a></List.Description>
           </List.Content>
       </List.Item>
     )

@@ -34,22 +34,21 @@ class SearchController @Inject()(securityAction: SecurityAction, cc: ControllerC
 
   def searchQuery(query: String) = Action.async { implicit request =>
     QueryParser.parse(query) match {
-      case Left(err) =>
+      case Left(_) =>
         Future(Ok(ResponseObj.asFailure("could not parse query. error: " + query)))
-      case Right(searchFilter) => getResultsForQuery(searchFilter)
-          .map(x => Ok(x))
-        .recoverWith {
-        case e: Exception => Future.successful(BadRequest(ResponseObj.asFailure(e.getMessage)))
-      }
+      case Right(searchFilter) =>
+        getResultsForQuery(searchFilter)
+          .map(Ok(_))
+          .recoverWith {
+            case e: Exception => Future.successful(BadRequest(ResponseObj.asFailure(e.getMessage)))
+          }
     }
   }
 
-  private def getResultsForQuery(q: SearchFilter): Future[String] = {
+  private def getResultsForQuery(searchFilter: SearchFilter): Future[String] = {
       ws.url(config.rankURL + "api/v1/search")
         .addHttpHeaders("Accept" -> "application/json")
-        .post(SearchFilter.format.writes(q))
-        .map(x => {
-          x.body
-        })
+        .post(SearchFilter.format.writes(searchFilter))
+        .map(_.body)
     }
 }
