@@ -13,17 +13,19 @@ import sample.chirper.friend.api.{CreateUser, FriendId, FriendService, User}
 import scala.collection.immutable.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
+import scala.collection.JavaConverters._
+
 class FriendServiceImpl()(implicit ec: ExecutionContext) extends FriendService {
 
   val userMap = new ConcurrentHashMap[String, User]()
 
   val friendsMap = new ConcurrentHashMap[String, ConcurrentLinkedQueue[User]]()
 
-  override def getUser(id: String): ServiceCall[NotUsed, User] = {
-    request =>
-      val user = userMap.get(id)
+  override def getUser(userId: String): ServiceCall[NotUsed, User] = {
+    _ =>
+      val user = userMap.get(userId)
       if (user == null)
-        throw NotFound(s"user $id not found")
+        throw NotFound(s"user $userId not found")
       else {
         Future.successful(getUser(user.userId, user.name))
       }
@@ -61,20 +63,20 @@ class FriendServiceImpl()(implicit ec: ExecutionContext) extends FriendService {
   }
 
 
-  override def getFollowers(id: String): ServiceCall[NotUsed, Seq[String]] = {
-    req => {
-      val user = userMap.get(id)
+  override def getFollowers(userId: String): ServiceCall[NotUsed, Seq[String]] = {
+    request => {
+      val user = userMap.get(userId)
       if (user == null)
-        throw NotFound(s"user $id not found")
+        throw NotFound(s"user $userId not found")
       else {
-        Future.successful(getUser(user.userId, user.name).friends)
+        Future.successful(getFollowerUserIds(userId))
       }
     }
   }
 
-  private def getUser(userId: String, name: String): User = {
-    import scala.collection.JavaConverters._
+  private def getUser(userId: String, name: String): User =
+    User(userId, name, getFollowerUserIds(userId))
 
-    User(userId, name, friendsMap.get(userId).asScala.toList.map(x => x.userId))
-  }
+  private def getFollowerUserIds(userId: String): Seq[String] =
+    friendsMap.get(userId).asScala.toList.map(_.userId)
 }

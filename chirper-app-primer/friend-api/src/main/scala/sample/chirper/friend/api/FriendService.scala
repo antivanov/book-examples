@@ -21,7 +21,7 @@ trait FriendService extends Service {
    *
    * The ID of this service call is the user name, and the response message is the User object.
    */
-  def getUser(id: String): ServiceCall[NotUsed, User] 
+  def getUser(userId: String): ServiceCall[NotUsed, User]
 
   /**
    * Service call for creating a user.
@@ -50,10 +50,10 @@ trait FriendService extends Service {
     import Service._
 
     named("friendservice").withCalls(
-        pathCall("/api/users/:id", getUser _),
+        pathCall("/api/users/:userId", getUser _),
         namedCall("/api/users", createUser),
         pathCall("/api/users/:userId/friends", addFriend _),
-        pathCall("/api/users/:id/followers", getFollowers _)
+        pathCall("/api/users/:userId/followers", getFollowers _)
       ).withAutoAcl(true)
 
   }
