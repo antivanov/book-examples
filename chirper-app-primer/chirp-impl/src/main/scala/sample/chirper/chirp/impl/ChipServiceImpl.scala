@@ -14,12 +14,9 @@ import sample.chirper.chirp.api.{Chirp, ChirpService, HistoricalChirpsRequest, L
 import scala.collection.immutable.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-object ChirpServiceImpl {
-  final val MaxTopics = 1024
-}
-
 class ChirpServiceImpl (topics: PubSubRegistry)(implicit ex: ExecutionContext) extends ChirpService {
 
+  private val RecentChirpNumber: Int = 10
 
   private val log = LoggerFactory.getLogger(classOf[ChirpServiceImpl])
 
@@ -33,7 +30,7 @@ class ChirpServiceImpl (topics: PubSubRegistry)(implicit ex: ExecutionContext) e
       if (userId != chirp.userId)
         throw new IllegalArgumentException(s"UserId $userId did not match userId in $chirp")
 
-      val topic: PubSubRef[Chirp] = topics.refFor(TopicId(topicQualifier(userId)))
+      val topic: PubSubRef[Chirp] = topics.refFor(TopicId(userId))
       topic.publish(chirp)
 
       this.synchronized {
@@ -43,60 +40,51 @@ class ChirpServiceImpl (topics: PubSubRegistry)(implicit ex: ExecutionContext) e
     }
   }
 
-  private def topicQualifier(userId: String): String =
-    String.valueOf(Math.abs(userId.hashCode()) % ChirpServiceImpl.MaxTopics)
-
   override def getLiveChirps: ServiceCall[LiveChirpsRequest, Source[Chirp, NotUsed]] = {
     req => {
-      recentChirps(req.userIds).map { chirps =>
-        val sources: Seq[Source[Chirp, NotUsed]] = for(userId <- req.userIds) yield {
-          val topic: PubSubRef[Chirp] = topics.refFor(TopicId(topicQualifier(userId)))
-          topic.subscriber
-        }
-
-        val users = req.userIds.toSet
-        val publishedChirps = Source(sources).flatMapMerge(sources.size, x => x)
-          .filter(chirp => users(chirp.userId))
-
-        // We currently ignore the fact that it is possible to get duplicate chirps
-        // from the recent and the topic. That can be solved with a de-duplication stage.
-        Source(chirps).concat(publishedChirps)
+      val chirps = getHistoricalChirpsOrderedByTime(req.userIds, RecentChirpNumber)
+      val liveChirpSources: Seq[Source[Chirp, NotUsed]] = for(userId <- req.userIds) yield {
+        val topic: PubSubRef[Chirp] = topics.refFor(TopicId(userId))
+        topic.subscriber
       }
+
+      val users = req.userIds.toSet
+      val allUsersLiveChirpSource: Source[Chirp, NotUsed] = Source(liveChirpSources).flatMapMerge(liveChirpSources.size, x => x)
+        .filter(chirp => users(chirp.userId))
+
+      // We currently ignore the fact that it is possible to get duplicate chirps
+      // from the recent and the topic. That can be solved with a de-duplication stage.
+      Future.successful(Source(chirps).concat(allUsersLiveChirpSource))
     }
   }
 
-  override def  getHistoricalChirps: ServiceCall[HistoricalChirpsRequest, Source[Chirp, NotUsed]] = {
+  override def getHistoricalChirps: ServiceCall[HistoricalChirpsRequest, Source[Chirp, NotUsed]] = {
     req => {
       val userIds = req.userIds
-      val chirps = userIds.map { userId =>
-        Source((for {
-          row <- allChirps
-          if row.userId == userId
-        } yield row).sortWith((a, b) => a.timestamp.compareTo(b.timestamp) <= 0))
-      }
+      val chirps = getHistoricalChirpsOrderedByTime(userIds)
 
       // Chirps from one user are ordered by timestamp, but chirps from different
       // users are not ordered. That can be improved by implementing a smarter
       // merge that takes the timestamps into account.
-      val x = Source(chirps)
-      val res = x.flatMapMerge(chirps.size, x => x)
-      Future.successful(res)
+      Future.successful(Source(chirps))
     }
   }
 
 
-  private def recentChirps(userIds: Seq[String]): Future[Seq[Chirp]] = {
-    val limit = 10
-    def getChirps(userId: String): Future[Seq[Chirp]] = {
-      Future.successful(for {
+  private def getHistoricalChirpsOrderedByTime(userIds: Seq[String], limit: Int = -1): Seq[Chirp] = {
+    def getChirps(userId: String): Seq[Chirp] = {
+      for {
         row <- allChirps
         if row.userId == userId
-      } yield row)
+      } yield row
     }
-    val results = Future.sequence(userIds.map(getChirps)).map(_.flatten)
-    val sortedLimited = results.map(_.sorted.reverse) // reverse order
+    val userChirps = userIds.flatMap(getChirps).sorted.reverse
 
-    sortedLimited.map(_.take(limit)) // take only latest chirps
+    if (limit > 0) {
+      userChirps.take(limit)
+    } else {
+      userChirps
+    }
   }
 
 }
