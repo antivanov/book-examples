@@ -5,8 +5,6 @@ package sample.chirper.chirp.api
 
 import play.api.libs.json.Json
 
-import scala.collection.immutable.Seq
-
 case class LiveChirpsRequest(userIds: Seq[String])
 
 object LiveChirpsRequest{

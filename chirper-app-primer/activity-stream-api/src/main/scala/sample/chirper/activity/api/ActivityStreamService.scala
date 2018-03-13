@@ -16,7 +16,7 @@ trait ActivityStreamService extends Service {
 
   def getLiveActivityStream(userId: String): ServiceCall[NotUsed, Source[Chirp, NotUsed]]
 
-  def getHistoricalActivityStream(userId: String): ServiceCall[NotUsed, Source[Chirp, NotUsed]]
+  def getHistoricalActivityStream(userId: String): ServiceCall[HistoricalActivityStreamReq, Source[Chirp, NotUsed]]
 
   override def descriptor(): Descriptor = {
     import Service._

@@ -7,14 +7,11 @@ import java.time.Duration
 import java.time.Instant
 
 import scala.compat.java8.FutureConverters._
-import scala.concurrent.ExecutionContext
-
+import scala.concurrent.{ExecutionContext, Future}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
-
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-
-import sample.chirper.activity.api.ActivityStreamService
+import sample.chirper.activity.api.{ActivityStreamService, HistoricalActivityStreamReq}
 import sample.chirper.chirp.api.Chirp
 import sample.chirper.chirp.api.ChirpService
 import sample.chirper.chirp.api.HistoricalChirpsRequest
@@ -29,22 +26,22 @@ class ActivityStreamServiceImpl (
   override def getLiveActivityStream(userId: String): ServiceCall[NotUsed, Source[Chirp, NotUsed]] = {
     req =>
       for {
-        user <- friendService.getUser(userId).invoke()
-        userIds = user.friends :+ userId
-        chirpsReq = LiveChirpsRequest(userIds)
-        chirps <- chirpService.getLiveChirps.invoke(chirpsReq)
+        userIds <- userAndFriendIds(userId)
+        chirps <- chirpService.getLiveChirps.invoke(LiveChirpsRequest(userIds))
       } yield chirps
   }
 
-  override def getHistoricalActivityStream(userId: String): ServiceCall[NotUsed, Source[Chirp, NotUsed]] = {
+  override def getHistoricalActivityStream(userId: String): ServiceCall[HistoricalActivityStreamReq, Source[Chirp, NotUsed]] = {
     req =>
       for {
-        user <- friendService.getUser(userId).invoke()
-        userIds = user.friends :+ userId
-        // FIXME we should use HistoricalActivityStreamReq request parameter
-        fromTime = Instant.now().minus(Duration.ofDays(7))
-        chirpsReq = HistoricalChirpsRequest(fromTime, userIds)
-        chirps <- chirpService.getHistoricalChirps.invoke(chirpsReq)
+        userIds <- userAndFriendIds(userId)
+        historicalChirpsRequest = HistoricalChirpsRequest(req.fromTime, userIds)
+        chirps <- chirpService.getHistoricalChirps.invoke(historicalChirpsRequest)
       } yield chirps
   }
+
+  private def userAndFriendIds(userId: String): Future[Seq[String]] =
+    friendService.getUser(userId).invoke().map(user => {
+      userId +: user.friends
+    })
 }
